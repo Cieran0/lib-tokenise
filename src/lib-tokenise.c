@@ -15,8 +15,7 @@ bool is_keyword(const char* buffer, const char** keywords, size_t keywords_lengt
     return false;
 }
 
-token* tokenise(const char* string_to_tokenise, const char** keywords, size_t keywords_length, const char* key_symbols) {
-        
+token* tokenise(const char* string_to_tokenise, const char** keywords, size_t keywords_length, const char* key_symbols) { 
 
     bool symbols[256] = {false};
 
@@ -31,6 +30,7 @@ token* tokenise(const char* string_to_tokenise, const char** keywords, size_t ke
     arena_t* arena = new_arena();
     
     char buff[MAX_TOKEN_LENGTH] = {0};
+    char string_buff[MAX_TOKEN_LENGTH] = {0};
     int buff_index = 0;
 
 
@@ -38,6 +38,40 @@ token* tokenise(const char* string_to_tokenise, const char** keywords, size_t ke
     for (size_t i = 0; string_to_tokenise[i] != 0; i++)
     {
         char current_char = string_to_tokenise[i];
+        if(current_char == '\"') {
+            if(buff_index > 0) {
+                token* previous_token = (token*)arena_alloc(arena, sizeof(token));
+                previous_token->type = is_keyword(buff, keywords, keywords_length) ? KEY_WORD_TOKEN : OTHER_TOKEN;
+                memcpy(previous_token->content, buff, buff_index);
+            }
+            buff_index = 0;
+
+
+            int k = 0;
+            int j = i+1;
+            while (string_to_tokenise[j] != 0)
+            {
+                if(string_to_tokenise[j] == '\"') {
+                    if(string_to_tokenise[j-1] == '\\') {
+                        string_buff[--k] = '\"';
+                    } else {
+                        break;
+                    }
+                }
+                string_buff[k++] = string_to_tokenise[j];
+                j++;
+            }
+            string_buff[k++] = '\0';
+            
+            token* this_token = (token*)arena_alloc(arena, sizeof(token));
+            this_token->type = STRING_TOKEN;
+            memcpy(this_token->content, string_buff, k);
+            i = j;
+            
+            continue;
+        }
+        
+        
         if(symbols[(size_t)current_char]) {
             if(buff_index > 0) {
                 token* previous_token = (token*)arena_alloc(arena, sizeof(token));
@@ -51,8 +85,10 @@ token* tokenise(const char* string_to_tokenise, const char** keywords, size_t ke
 
             memset(buff,0,MAX_TOKEN_LENGTH);
             buff_index = 0;
-
-        } else if (current_char == ' ' || current_char == '\t' || current_char == '\n') {
+            continue;
+        }
+        
+        if (current_char == ' ' || current_char == '\t' || current_char == '\n') {
             if(buff_index > 0) {
                 token* previous_token = (token*)arena_alloc(arena, sizeof(token));
                 previous_token->type = is_keyword(buff, keywords, keywords_length) ? KEY_WORD_TOKEN : OTHER_TOKEN;;
@@ -60,17 +96,18 @@ token* tokenise(const char* string_to_tokenise, const char** keywords, size_t ke
                 memset(buff,0,MAX_TOKEN_LENGTH);
                 buff_index = 0;
             }
-        } else {
-            buff[buff_index] = current_char;
-            buff_index++;
+            continue;
         }
 
-
+        buff[buff_index] = current_char;
+        buff_index++;
     }
     
     ((token*) arena_alloc(arena, sizeof(token)))->type = END_OF_TOKENS;
     
     token* tokens = arena->start;
+
+    free(arena);
 
     if (!tokens) {
         tokens = malloc(sizeof(token) * 2);

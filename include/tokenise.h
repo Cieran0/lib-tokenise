@@ -15,6 +15,7 @@ extern "C" {
 #define OTHER_TOKEN 2
 #define ERROR_TOKEN 3
 #define END_OF_TOKENS 4
+#define STRING_TOKEN 5
 
 #define MAX_TOKEN_LENGTH 256
 
