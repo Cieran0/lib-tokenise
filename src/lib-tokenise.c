@@ -102,6 +102,12 @@ token* tokenise(const char* string_to_tokenise, const char** keywords, size_t ke
         buff[buff_index] = current_char;
         buff_index++;
     }
+
+    if(buff_index != 0) {
+        token* final_token = (token*)arena_alloc(arena, sizeof(token));
+        final_token->type = is_keyword(buff, keywords, keywords_length) ? KEY_WORD_TOKEN : OTHER_TOKEN;
+        memcpy(final_token->content, buff, buff_index);
+    }
     
     ((token*) arena_alloc(arena, sizeof(token)))->type = END_OF_TOKENS;
     
